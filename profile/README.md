@@ -4,5 +4,5 @@ _Welcome to Loftyvirus, Our focus is on build and deploying using various concep
 
 ## Updates
 <!-- feed start -->
-- Feb 08 - [Welcome to LoftyVirus](https://loftyvirus.github.io/2025/02/08/Beginning-of-loftyvirus.html)
+- Feb 18 - [Welcome to LoftyVirus](https://loftyvirus.github.io/2025/02/18/Beginning-of-loftyvirus.html)
 <!-- feed end -->
