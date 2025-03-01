@@ -1,8 +1,4 @@
-
-<!-- feed start -->
 - [.github](https://github.com/loftyvirus/.github)
 - [Loftyvirus.github.io](https://github.com/loftyvirus/Loftyvirus.github.io)
 - [projectBCA](https://github.com/loftyvirus/projectBCA)
 - [VLC-discord-RPC](https://github.com/loftyvirus/VLC-discord-RPC)
-<!-- feed end -->
-
