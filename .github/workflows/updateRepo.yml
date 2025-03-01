@@ -25,7 +25,7 @@ jobs:
           REPOS=$(cat repos.txt)
           FEED_START="<!-- feed start -->"
           FEED_END="<!-- feed end -->"
-          README_FILE="README.md"
+          README_FILE="profile/README.md"
 
           # Get the current feed section
           FEED_CONTENT=$(sed -n "/$FEED_START/,/$FEED_END/p" $README_FILE)
