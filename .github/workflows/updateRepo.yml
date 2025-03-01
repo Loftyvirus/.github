@@ -1,8 +1,8 @@
-name: Update Repo Feed in Organization README.md
+name: Update Organization Repo Feed
 
 on:
   schedule:
-    - cron: "0 0 * * *"  # Runs every day at midnight UTC
+    - cron: "0 0 * * *"  # Runs daily at midnight UTC
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
@@ -13,7 +13,7 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v3
         with:
-          ref: main  # Ensure it's checking out the correct branch
+          ref: main
           fetch-depth: 0  # Fetch full history
 
       - name: Ensure profile README.md exists
@@ -21,15 +21,17 @@ jobs:
           PROFILE_README=".github/profile/README.md"
           if [ ! -f "$PROFILE_README" ]; then
             mkdir -p .github/profile
-            echo "# Loftyvirus Organization" > "$PROFILE_README"
-            echo "_Welcome to Loftyvirus. Our focus is on building and deploying using various concepts available, trying various/different tools and technologies._" >> "$PROFILE_README"
-            echo "" >> "$PROFILE_README"
-            echo "## Updates" >> "$PROFILE_README"
-            echo "<!-- feed start -->" >> "$PROFILE_README"
-            echo "<!-- feed end -->" >> "$PROFILE_README"
+            cat <<EOF > "$PROFILE_README"
+# Loftyvirus Organization
+_Welcome to Loftyvirus. Our focus is on building and deploying using various concepts, trying different tools and technologies._
+
+## Updates
+<!-- feed start -->
+<!-- feed end -->
+EOF
           fi
 
-      - name: Get list of repositories in Loftyvirus organization
+      - name: Fetch list of Loftyvirus organization repositories
         run: |
           curl -s "https://api.github.com/orgs/Loftyvirus/repos?per_page=100" | jq -r '.[].html_url' > repos.txt
 
@@ -39,15 +41,15 @@ jobs:
           FEED_START="<!-- feed start -->"
           FEED_END="<!-- feed end -->"
 
-          # Get the current feed section
-          FEED_CONTENT=$(sed -n "/$FEED_START/,/$FEED_END/p" "$PROFILE_README")
+          if ! grep -q "http" "$PROFILE_README"; then
+            echo "Adding first 10 repositories..."
+            head -n 10 repos.txt | awk '{print "- [" $0 "](" $0 ")"}' > temp_repos.txt
 
-          # If feed is empty, add up to 10 existing repositories
-          if [ -z "$(echo "$FEED_CONTENT" | grep "http")" ]; then
-            echo "Feed is empty. Adding first 10 repositories..."
-            FIRST_10_REPOS=$(head -n 10 repos.txt | awk '{print "- [" $0 "](" $0 ")"}')
-            sed -i "/$FEED_START/,/$FEED_END/d" "$PROFILE_README"
-            sed -i "/$FEED_END/i $FEED_START\n$FIRST_10_REPOS\n$FEED_END" "$PROFILE_README"
+            awk -v start="$FEED_START" -v end="$FEED_END" -v new_repos="$(cat temp_repos.txt)" '
+              {print}
+              $0 ~ start {print new_repos}
+              $0 ~ end {exit}
+            ' "$PROFILE_README" > temp.md && mv temp.md "$PROFILE_README"
           fi
 
       - name: Append new repositories
@@ -56,23 +58,19 @@ jobs:
           FEED_START="<!-- feed start -->"
           FEED_END="<!-- feed end -->"
 
-          # Get the current feed section
-          FEED_CONTENT=$(sed -n "/$FEED_START/,/$FEED_END/p" "$PROFILE_README")
-
-          # Add only new repositories
+          EXISTING_FEED=$(sed -n "/$FEED_START/,/$FEED_END/p" "$PROFILE_README")
           NEW_REPOS=""
           while read -r REPO; do
-            if ! echo "$FEED_CONTENT" | grep -q "$REPO"; then
+            if ! echo "$EXISTING_FEED" | grep -q "$REPO"; then
               NEW_REPOS+="- [$REPO]($REPO)\n"
             fi
           done < repos.txt
 
-          # If new repositories exist, append them
           if [ -n "$NEW_REPOS" ]; then
             sed -i "/$FEED_END/i $NEW_REPOS" "$PROFILE_README"
           fi
 
-      - name: Commit and push changes
+      - name: Commit and push changes if needed
         run: |
           git config --global user.name "Loftyvirus Bot"
           git config --global user.email "bot@loftyvirus.org"
