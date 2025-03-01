@@ -1,9 +1,9 @@
-name: Update Repo Feed in README.md
+name: Update Repo Feed in Organization README.md
 
 on:
   schedule:
-    - cron: "0 0 * * *"  # This will run every day at midnight UTC
-  workflow_dispatch:  # This allows manual triggering as well
+    - cron: "0 0 * * *"  # Runs every day at midnight UTC
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   update_readme:
@@ -11,41 +11,55 @@ jobs:
 
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          ref: main  # Ensure it's checking out the correct branch
+          fetch-depth: 0  # Fetch full history
+
+      - name: Ensure profile README.md exists
+        run: |
+          PROFILE_README=".github/profile/README.md"
+          if [ ! -f "$PROFILE_README" ]; then
+            mkdir -p .github/profile
+            echo "# Loftyvirus Organization" > "$PROFILE_README"
+            echo "_Welcome to Loftyvirus. Our focus is on building and deploying using various concepts available, trying various/different tools and technologies._" >> "$PROFILE_README"
+            echo "" >> "$PROFILE_README"
+            echo "## Updates" >> "$PROFILE_README"
+            echo "<!-- feed start -->" >> "$PROFILE_README"
+            echo "<!-- feed end -->" >> "$PROFILE_README"
+          fi
 
       - name: Get list of repositories in Loftyvirus organization
         run: |
           curl -s https://api.github.com/orgs/Loftyvirus/repos?per_page=100 | jq -r '.[].html_url' > repos.txt
 
-      - name: Update README.md with new repositories
+      - name: Update profile README.md with new repositories
         run: |
-          REPOS=$(cat repos.txt)
+          PROFILE_README=".github/profile/README.md"
           FEED_START="<!-- feed start -->"
           FEED_END="<!-- feed end -->"
-          README_FILE="profile/README.md"
 
           # Get the current feed section
-          FEED_CONTENT=$(sed -n "/$FEED_START/,/$FEED_END/p" $README_FILE)
+          FEED_CONTENT=$(sed -n "/$FEED_START/,/$FEED_END/p" "$PROFILE_README")
 
           # Add new repositories to the feed content
           NEW_REPOS=""
-          for REPO in $REPOS; do
+          while read -r REPO; do
             if ! echo "$FEED_CONTENT" | grep -q "$REPO"; then
               NEW_REPOS+="- [$REPO]($REPO)\n"
             fi
-          done
+          done < repos.txt
 
           # If there are new repositories, update the README
           if [ -n "$NEW_REPOS" ]; then
-            # Remove the old feed section and append the new one
-            sed -i "/$FEED_START/,/$FEED_END/d" $README_FILE
-            sed -i "/$FEED_END/i $FEED_START\n$NEW_REPOS$FEED_END" $README_FILE
+            sed -i "/$FEED_START/,/$FEED_END/d" "$PROFILE_README"
+            sed -i "/$FEED_END/i $FEED_START\n$NEW_REPOS$FEED_END" "$PROFILE_README"
           fi
 
       - name: Commit and push changes
         run: |
           git config --global user.name "Loftyvirus Bot"
           git config --global user.email "bot@loftyvirus.org"
-          git add README.md
-          git commit -m "Update repository feed"
+          git add .github/profile/README.md
+          git commit -m "Update organization repository feed" || echo "No changes to commit"
           git push
