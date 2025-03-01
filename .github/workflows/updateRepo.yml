@@ -13,9 +13,6 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v2
 
-      - name: Set up Git
-        uses: actions/setup-git@v2
-
       - name: Get list of repositories in Loftyvirus organization
         run: |
           curl -s https://api.github.com/orgs/Loftyvirus/repos?per_page=100 | jq -r '.[].html_url' > repos.txt
