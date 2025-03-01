@@ -1,1 +1,54 @@
+name: Update Repo Feed in README.md
 
+on:
+  schedule:
+    - cron: "0 0 * * *"  # This will run every day at midnight UTC
+  workflow_dispatch:  # This allows manual triggering as well
+
+jobs:
+  update_readme:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Set up Git
+        uses: actions/setup-git@v2
+
+      - name: Get list of repositories in Loftyvirus organization
+        run: |
+          curl -s https://api.github.com/orgs/Loftyvirus/repos?per_page=100 | jq -r '.[].html_url' > repos.txt
+
+      - name: Update README.md with new repositories
+        run: |
+          REPOS=$(cat repos.txt)
+          FEED_START="<!-- feed start -->"
+          FEED_END="<!-- feed end -->"
+          README_FILE="README.md"
+
+          # Get the current feed section
+          FEED_CONTENT=$(sed -n "/$FEED_START/,/$FEED_END/p" $README_FILE)
+
+          # Add new repositories to the feed content
+          NEW_REPOS=""
+          for REPO in $REPOS; do
+            if ! echo "$FEED_CONTENT" | grep -q "$REPO"; then
+              NEW_REPOS+="- [$REPO]($REPO)\n"
+            fi
+          done
+
+          # If there are new repositories, update the README
+          if [ -n "$NEW_REPOS" ]; then
+            # Remove the old feed section and append the new one
+            sed -i "/$FEED_START/,/$FEED_END/d" $README_FILE
+            sed -i "/$FEED_END/i $FEED_START\n$NEW_REPOS$FEED_END" $README_FILE
+          fi
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "Loftyvirus Bot"
+          git config --global user.email "bot@loftyvirus.org"
+          git add README.md
+          git commit -m "Update repository feed"
+          git push
