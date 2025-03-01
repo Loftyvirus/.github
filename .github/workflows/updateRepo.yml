@@ -31,9 +31,9 @@ jobs:
 
       - name: Get list of repositories in Loftyvirus organization
         run: |
-          curl -s https://api.github.com/orgs/Loftyvirus/repos?per_page=100 | jq -r '.[].html_url' > repos.txt
+          curl -s "https://api.github.com/orgs/Loftyvirus/repos?per_page=100" | jq -r '.[].html_url' > repos.txt
 
-      - name: Update profile README.md with new repositories
+      - name: Populate initial 10 repositories if feed is empty
         run: |
           PROFILE_README=".github/profile/README.md"
           FEED_START="<!-- feed start -->"
@@ -42,7 +42,24 @@ jobs:
           # Get the current feed section
           FEED_CONTENT=$(sed -n "/$FEED_START/,/$FEED_END/p" "$PROFILE_README")
 
-          # Add new repositories to the feed content
+          # If feed is empty, add up to 10 existing repositories
+          if [ -z "$(echo "$FEED_CONTENT" | grep "http")" ]; then
+            echo "Feed is empty. Adding first 10 repositories..."
+            FIRST_10_REPOS=$(head -n 10 repos.txt | awk '{print "- [" $0 "](" $0 ")"}')
+            sed -i "/$FEED_START/,/$FEED_END/d" "$PROFILE_README"
+            sed -i "/$FEED_END/i $FEED_START\n$FIRST_10_REPOS\n$FEED_END" "$PROFILE_README"
+          fi
+
+      - name: Append new repositories
+        run: |
+          PROFILE_README=".github/profile/README.md"
+          FEED_START="<!-- feed start -->"
+          FEED_END="<!-- feed end -->"
+
+          # Get the current feed section
+          FEED_CONTENT=$(sed -n "/$FEED_START/,/$FEED_END/p" "$PROFILE_README")
+
+          # Add only new repositories
           NEW_REPOS=""
           while read -r REPO; do
             if ! echo "$FEED_CONTENT" | grep -q "$REPO"; then
@@ -50,10 +67,9 @@ jobs:
             fi
           done < repos.txt
 
-          # If there are new repositories, update the README
+          # If new repositories exist, append them
           if [ -n "$NEW_REPOS" ]; then
-            sed -i "/$FEED_START/,/$FEED_END/d" "$PROFILE_README"
-            sed -i "/$FEED_END/i $FEED_START\n$NEW_REPOS$FEED_END" "$PROFILE_README"
+            sed -i "/$FEED_END/i $NEW_REPOS" "$PROFILE_README"
           fi
 
       - name: Commit and push changes
@@ -61,5 +77,5 @@ jobs:
           git config --global user.name "Loftyvirus Bot"
           git config --global user.email "bot@loftyvirus.org"
           git add .github/profile/README.md
-          git commit -m "Update organization repository feed" || echo "No changes to commit"
+          git commit -m "Update repository feed" || echo "No changes to commit"
           git push
