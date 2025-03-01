@@ -1,8 +1,6 @@
+# <samp>Loftyvirus Organization</samp>
+_Welcome to Loftyvirus, Our focus is on building and deploying using various concepts available, trying various/different tools and technologies._
 
+## Updates
 <!-- feed start -->
-- [.github](https://github.com/loftyvirus/.github)
-- [Loftyvirus.github.io](https://github.com/loftyvirus/Loftyvirus.github.io)
-- [projectBCA](https://github.com/loftyvirus/projectBCA)
-- [VLC-discord-RPC](https://github.com/loftyvirus/VLC-discord-RPC)
 <!-- feed end -->
-
